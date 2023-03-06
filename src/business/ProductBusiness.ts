@@ -1,10 +1,16 @@
 import { ProductDatabase } from "../database/ProductDatabase"
+import { ProductDTO, ProductInputDTO } from "../dtos/ProductDTO"
 import { BadRequestError } from "../errors/BadRequestError"
 import { NotFoundError } from "../errors/NotFoundError"
 import { Product } from "../models/Product"
 import { ProductDB } from "../types"
 
 export class ProductBusiness {
+    constructor(
+        private productDTO: ProductDTO,
+        private productDatabase: ProductDatabase
+    ){}
+
     public getProducts = async (input: any) => {
         const { q } = input
 
@@ -21,21 +27,10 @@ export class ProductBusiness {
         return products
     }
 
-    public createProduct = async (input: any) => {
+    public createProduct = async (input: ProductInputDTO) => {
         const { id, name, price } = input
 
-        if (typeof id !== "string") {
-            throw new BadRequestError("'id' deve ser string")
-        }
-
-        if (typeof name !== "string") {
-            throw new BadRequestError("'name' deve ser string")
-        }
-
-        if (typeof price !== "number") {
-            throw new BadRequestError("'price' deve ser number")
-        }
-
+        //veririfcação de negocio
         if (name.length < 2) {
             throw new BadRequestError("'name' deve possuir pelo menos 2 caracteres")
         }
@@ -44,8 +39,8 @@ export class ProductBusiness {
             throw new BadRequestError("'price' não pode ser zero ou negativo")
         }
 
-        const productDatabase = new ProductDatabase()
-        const productDBExists = await productDatabase.findProductById(id)
+        // const productDatabase = new ProductDatabase()
+        const productDBExists = await this.productDatabase.findProductById(id)
 
         if (productDBExists) {
             throw new BadRequestError("'id' já existe")
@@ -65,12 +60,19 @@ export class ProductBusiness {
             created_at: newProduct.getCreatedAt()
         }
 
-        await productDatabase.insertProduct(newProductDB)
+        await this.productDatabase.insertProduct(newProductDB)
 
-        const output = {
-            message: "Produto registrado com sucesso",
-            product: newProduct
-        }
+        // objeto simples
+        // const output = {
+        //     message: "Produto registrado com sucesso",
+        //     product: newProduct
+        // }
+
+        // return output
+
+        // utilizar DTO para tranferir os dados
+        // const productDTO = new ProductDTO()
+        const output = this.productDTO.createProductOutputDTO(newProduct)
 
         return output
     }
